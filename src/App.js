@@ -28,32 +28,28 @@ const App = () => {
     context.lineCap = 'round';
     ctx.current = context;
 
-    // Підключення до WebSocket
-    socketRef.current = io('http://localhost:5000'); // Підключаємо WebSocket
+    socketRef.current = io('http://localhost:5000'); 
 
     socketRef.current.on('connect', () => {
       console.log('Connected to server');
     });
 
-    // Отримуємо малюнки від інших клієнтів
     socketRef.current.on('drawing', (receivedElements) => {
       setElements(receivedElements);
     });
 
     return () => {
-      socketRef.current.disconnect(); // Закриваємо з'єднання при демонтажі
+      socketRef.current.disconnect(); 
     };
   }, []);
 
   const sendDrawing = (updatedElements) => {
-    // Відправляємо малюнки на сервер
     socketRef.current.emit('drawing', updatedElements);
   };
 
   const handleClearCanvas = () => {
     ctx.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     setElements([]);
-    // Відправляємо подію очищення всім клієнтам
     sendDrawing([]);
   };
 
@@ -91,10 +87,10 @@ const App = () => {
           elements={elements}
           tool={tool}
           thickness={thickness}
-          socket={socketRef.current}  // Передаємо socket
+          socket={socketRef.current} 
           isDrawing={isDrawing}
           setIsDrawing={setIsDrawing}
-          sendDrawing={sendDrawing}  // Передаємо функцію для надсилання малюнків
+          sendDrawing={sendDrawing}  
         />
       </div>
     </div>

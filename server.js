@@ -7,12 +7,12 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000", // Дозволяємо запити з цього походження
+    origin: "http://localhost:3000", 
     methods: ["GET", "POST"]
   }
 });
 
-app.use(cors()); // Використовуємо CORS для всіх маршрутів
+app.use(cors()); 
 
 app.get('/', (req, res) => {
   res.send('Server is running');
@@ -21,9 +21,7 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   console.log('User connected');
 
-  // Обробка малювання
   socket.on('drawing', (elements) => {
-    // Відправляємо малюнки всім підключеним клієнтам, окрім того, хто відправив
     socket.broadcast.emit('drawing', elements);
   });
 

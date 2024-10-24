@@ -107,12 +107,12 @@ const Canvas = ({ canvasRef, ctx, color, setElements, elements, tool, thickness,
       );
     }
 
-    sendDrawing(elements);  // Відправляємо елементи малювання через WebSocket
+    sendDrawing(elements);  
   };
 
   const handleMouseUp = () => {
     setIsDrawing(false);
-    sendDrawing(elements);  // Відправляємо елементи малювання після завершення
+    sendDrawing(elements);  
   };
 
   return (
