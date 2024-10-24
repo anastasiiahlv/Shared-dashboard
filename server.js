@@ -1,44 +1,39 @@
-const WebSocket = require('ws');
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+const cors = require('cors');
 
-const wss = new WebSocket.Server({ port: 3001 });
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "http://localhost:3000", // Дозволяємо запити з цього походження
+    methods: ["GET", "POST"]
+  }
+});
 
-wss.on('connection', (ws) => {
-  console.log('Client connected');
+app.use(cors()); // Використовуємо CORS для всіх маршрутів
 
-  ws.on('message', (message) => {
-    try {
-      // Перевіряємо, чи передані дані у форматі JSON
-      const data = JSON.parse(message);
+app.get('/', (req, res) => {
+  res.send('Server is running');
+});
 
-      // Лог для перевірки отриманих даних
-      console.log('Received message:', data);
+io.on('connection', (socket) => {
+  console.log('User connected');
 
-      // Перевіряємо, чи потрібно очистити полотно
-      if (data.clear) {
-        // Передаємо команду очищення всім клієнтам
-        wss.clients.forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ clear: true }));
-          }
-        });
-      } else {
-        // Якщо це малювання, передаємо дані всім клієнтам
-        wss.clients.forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(message); // Надсилаємо отримане повідомлення всім клієнтам
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error parsing message:', error);
-    }
+  // Обробка малювання
+  socket.on('drawing', (elements) => {
+    // Відправляємо малюнки всім підключеним клієнтам, окрім того, хто відправив
+    socket.broadcast.emit('drawing', elements);
   });
 
-  ws.on('close', () => {
-    console.log('Client disconnected');
+  socket.on('disconnect', () => {
+    console.log('User disconnected');
   });
 });
 
-console.log('WebSocket сервер працює на ws://localhost:3001');
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 

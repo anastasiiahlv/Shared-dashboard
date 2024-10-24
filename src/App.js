@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Canvas from './Canvas';
 import './App.css'; 
 import rough from 'roughjs/bundled/rough.esm';
+import io from 'socket.io-client';
 
 const generator = rough.generator();
 
@@ -27,56 +28,41 @@ const App = () => {
     context.lineCap = 'round';
     ctx.current = context;
 
-    // WebSocket connection
-    socketRef.current = new WebSocket('ws://localhost:3001');
+    // Підключення до WebSocket
+    socketRef.current = io('http://localhost:5000'); // Підключаємо WebSocket
 
-    socketRef.current.onopen = () => {
-      console.log('WebSocket connection established');
-    };
+    socketRef.current.on('connect', () => {
+      console.log('Connected to server');
+    });
 
-    socketRef.current.onmessage = (event) => {
-      if (typeof event.data === 'string') {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.clear) {
-            ctx.current.clearRect(0, 0, canvas.width, canvas.height);
-          }
-        } catch (error) {
-          console.error('Error parsing message:', error);
-        }
-      } else {
-        const img = new Image();
-        img.src = URL.createObjectURL(event.data);
-        img.onload = () => {
-          ctx.current.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.current.drawImage(img, 0, 0);
-        };
-      }
-    };
-
-    socketRef.current.onclose = () => {
-      console.log('WebSocket connection closed');
-    };
+    // Отримуємо малюнки від інших клієнтів
+    socketRef.current.on('drawing', (receivedElements) => {
+      setElements(receivedElements);
+    });
 
     return () => {
-      socketRef.current.close(); // Cleanup WebSocket on component unmount
+      socketRef.current.disconnect(); // Закриваємо з'єднання при демонтажі
     };
   }, []);
+
+  const sendDrawing = (updatedElements) => {
+    // Відправляємо малюнки на сервер
+    socketRef.current.emit('drawing', updatedElements);
+  };
 
   const handleClearCanvas = () => {
     ctx.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     setElements([]);
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ clear: true }));
-    }
+    // Відправляємо подію очищення всім клієнтам
+    sendDrawing([]);
   };
 
   return (
-    <div className="container"> {/* Apply container class */}
-      <div className="header"> {/* Apply header class */}
+    <div className="container">
+      <div className="header">
         <h1>Drawing App</h1>
       </div>
-      <div className="controls"> {/* Apply controls class */}
+      <div className="controls">
         <label>Color: </label>
         <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
         <label>Tool: </label>
@@ -94,9 +80,9 @@ const App = () => {
           max="20"
           onChange={(e) => setThickness(e.target.value)}
         />
-        <button className="button" onClick={handleClearCanvas}>Clear Canvas</button> {/* Apply button class */}
+        <button className="button" onClick={handleClearCanvas}>Clear Canvas</button>
       </div>
-      <div className="canvas-container"> {/* Apply canvas-container class */}
+      <div className="canvas-container">
         <Canvas
           canvasRef={canvasRef}
           ctx={ctx}
@@ -105,9 +91,10 @@ const App = () => {
           elements={elements}
           tool={tool}
           thickness={thickness}
-          socket={socketRef.current}
+          socket={socketRef.current}  // Передаємо socket
           isDrawing={isDrawing}
           setIsDrawing={setIsDrawing}
+          sendDrawing={sendDrawing}  // Передаємо функцію для надсилання малюнків
         />
       </div>
     </div>
@@ -115,3 +102,4 @@ const App = () => {
 };
 
 export default App;
+

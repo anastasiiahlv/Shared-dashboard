@@ -3,7 +3,7 @@ import rough from 'roughjs/bundled/rough.esm';
 
 const generator = rough.generator();
 
-const Canvas = ({ canvasRef, ctx, color, setElements, elements, tool, thickness, socket, isDrawing, setIsDrawing }) => {
+const Canvas = ({ canvasRef, ctx, color, setElements, elements, tool, thickness, socket, isDrawing, setIsDrawing, sendDrawing }) => {
   useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
@@ -39,13 +39,7 @@ const Canvas = ({ canvasRef, ctx, color, setElements, elements, tool, thickness,
         });
       }
     });
-
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      canvasRef.current.toBlob((blob) => {
-        socket.send(blob);
-      });
-    }
-  }, [elements, canvasRef, socket]);
+  }, [elements]);
 
   const handleMouseDown = (e) => {
     const { offsetX, offsetY } = e.nativeEvent;
@@ -112,10 +106,13 @@ const Canvas = ({ canvasRef, ctx, color, setElements, elements, tool, thickness,
         )
       );
     }
+
+    sendDrawing(elements);  // Відправляємо елементи малювання через WebSocket
   };
 
   const handleMouseUp = () => {
     setIsDrawing(false);
+    sendDrawing(elements);  // Відправляємо елементи малювання після завершення
   };
 
   return (
@@ -132,3 +129,4 @@ const Canvas = ({ canvasRef, ctx, color, setElements, elements, tool, thickness,
 };
 
 export default Canvas;
+
