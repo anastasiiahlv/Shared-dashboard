@@ -67,6 +67,8 @@ const App = () => {
           <option value="rect">Rectangle</option>
           <option value="line">Line</option>
           <option value="eraser">Eraser</option>
+          <option value="ellipse">Ellipse</option>
+          <option value="circle">Circle</option> {/* Add Circle tool */}
         </select>
         <label>Thickness: </label>
         <input
@@ -98,4 +100,3 @@ const App = () => {
 };
 
 export default App;
-
