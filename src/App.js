@@ -8,6 +8,7 @@ import { longPoll, sendCanvasData } from './longPoll';
 const generator = rough.generator();
 
 const App = () => {
+  const [ping, setPing] = useState(null);
   const canvasRef = useRef(null);
   const ctx = useRef(null);
   const [color, setColor] = useState('#000000');
@@ -30,7 +31,7 @@ const App = () => {
     canvas.style.height = `${window.innerHeight}px`;
 
     const context = canvas.getContext('2d');
-    context.scale(2, 2); // Можливо, варто прибрати масштабування, якщо не потрібно
+    context.scale(2, 2); 
     context.lineCap = 'round';
     ctx.current = context;
 
@@ -38,6 +39,11 @@ const App = () => {
       socketRef.current = io('http://localhost:5000');
       socketRef.current.on('connect', () => {
         console.log('Connected to WebSocket server');
+      });
+
+      socketRef.current.on('pong', () => {
+        const latency = Date.now() - socketRef.current.pingStart;
+        setPing(latency); // Зберігаємо значення пінгу в стані
       });
 
       socketRef.current.on('drawing', (receivedElements) => {
@@ -51,6 +57,28 @@ const App = () => {
       longPoll(setElements); 
       console.log('Connected to Long Poll server');
     }
+  }, [connectionType]);
+
+  const measurePing = () => {
+    if (connectionType === 'WebSocket') {
+      socketRef.current.pingStart = Date.now();
+      socketRef.current.emit('ping');
+    } else if (connectionType === 'LongPoll') {
+      const start = Date.now();
+      fetch('http://localhost:5000/ping')
+        .then(() => {
+          const latency = Date.now() - start;
+          setPing(latency); // Зберігаємо значення пінгу в стані
+        })
+        .catch((error) => {
+          console.error('Ping error:', error);
+        });
+    }
+  };
+
+  useEffect(() => {
+    const interval = setInterval(measurePing, 5000); 
+    return () => clearInterval(interval);
   }, [connectionType]);
 
   const sendDrawing = (updatedElements) => {
@@ -76,6 +104,7 @@ const App = () => {
           <option value="WebSocket">WebSocket</option>
           <option value="LongPoll">Long Poll</option>
         </select>
+        <div>Ping: {ping !== null ? `${ping} ms` : 'N/A'}</div>
       </div>
       <div className="controls">
         <label>Color: </label>

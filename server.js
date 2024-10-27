@@ -23,6 +23,10 @@ let longPollClients = [];
 io.on('connection', (socket) => {
   console.log('User connected via WebSocket');
 
+  socket.on('ping', () => {
+    socket.emit('pong');
+  });
+
   socket.emit('drawing', elements);
 
   socket.on('drawing', (updatedElements) => {
@@ -34,6 +38,10 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('User disconnected from WebSocket');
   });
+});
+
+app.get('/ping', (req, res) => {
+  res.json({ message: 'pong' });
 });
 
 const notifyLongPollClients = () => {
