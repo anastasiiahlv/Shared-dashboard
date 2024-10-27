@@ -7,28 +7,56 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000", 
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"]
   }
 });
 
-app.use(cors()); 
+const PORT = 5000; 
+app.use(cors());
+app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.send('Server is running');
-});
+let elements = []; 
+let longPollClients = []; 
 
+// WebSocket Connection
 io.on('connection', (socket) => {
-  console.log('User connected');
+  console.log('User connected via WebSocket');
 
-  socket.on('drawing', (elements) => {
-    socket.broadcast.emit('drawing', elements);
+  socket.emit('drawing', elements);
+
+  socket.on('drawing', (updatedElements) => {
+    elements = updatedElements; 
+    socket.broadcast.emit('drawing', elements); 
+    notifyLongPollClients();
   });
 
   socket.on('disconnect', () => {
-    console.log('User disconnected');
+    console.log('User disconnected from WebSocket');
   });
 });
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const notifyLongPollClients = () => {
+  longPollClients.forEach((res) => res.json(elements));
+  longPollClients = []; 
+};
+
+// Long Polling route
+app.get('/long-poll', (req, res) => {
+  longPollClients.push(res); 
+
+  req.on('close', () => {
+    longPollClients = longPollClients.filter(client => client !== res);
+  });
+});
+
+app.post('/update-drawing', (req, res) => {
+  elements = req.body; 
+  notifyLongPollClients(); 
+  io.emit('drawing', elements); 
+  res.status(200).send();
+});
+
+server.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});

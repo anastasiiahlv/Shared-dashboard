@@ -59,8 +59,8 @@ const Canvas = ({ canvasRef, ctx, color, setElements, elements, tool, thickness,
   }, [elements]);
 
   const handleMouseDown = (e) => {
-    const { offsetX, offsetY } = e.nativeEvent;
     const canvas = canvasRef.current;
+    const { offsetX, offsetY } = e.nativeEvent;
 
     // Ensure the mouse click is within canvas boundaries
     if (offsetX < 0 || offsetX > canvas.width || offsetY < 0 || offsetY > canvas.height) {
@@ -86,99 +86,47 @@ const Canvas = ({ canvasRef, ctx, color, setElements, elements, tool, thickness,
         { offsetX, offsetY, stroke: color, element: tool, thickness: thickness },
       ]);
     }
-
     setIsDrawing(true);
   };
 
   const handleMouseMove = (e) => {
-    if (!isDrawing) return;
-
-    const { offsetX, offsetY } = e.nativeEvent;
     const canvas = canvasRef.current;
+    const { offsetX, offsetY } = e.nativeEvent;
 
     // Ensure the mouse move is within canvas boundaries
     if (offsetX < 0 || offsetX > canvas.width || offsetY < 0 || offsetY > canvas.height) {
       return;
     }
 
-    if (tool === 'rect') {
-      setElements((prevElements) =>
-        prevElements.map((ele, index) =>
-          index === elements.length - 1
-            ? {
-                ...ele,
-                width: offsetX - ele.offsetX,
-                height: offsetY - ele.offsetY,
-              }
-            : ele
-        )
-      );
-    } else if (tool === 'line') {
-      setElements((prevElements) =>
-        prevElements.map((ele, index) =>
-          index === elements.length - 1
-            ? {
-                ...ele,
-                width: offsetX,
-                height: offsetY,
-              }
-            : ele
-        )
-      );
-    } else if (tool === 'ellipse') {
-      setElements((prevElements) =>
-        prevElements.map((ele, index) =>
-          index === elements.length - 1
-            ? {
-                ...ele,
-                width: offsetX - ele.offsetX,
-                height: offsetY - ele.offsetY,
-              }
-            : ele
-        )
-      );
-    } else if (tool === 'circle') {
-      setElements((prevElements) =>
-        prevElements.map((ele, index) =>
-          index === elements.length - 1
-            ? {
-                ...ele,
-                width: Math.sqrt(Math.pow(offsetX - ele.offsetX, 2) + Math.pow(offsetY - ele.offsetY, 2)) * 2,
-                height: Math.sqrt(Math.pow(offsetX - ele.offsetX, 2) + Math.pow(offsetY - ele.offsetY, 2)) * 2,
-              }
-            : ele
-        )
-      );
-    } else if (tool === 'pencil' || tool === 'eraser') {
-      setElements((prevElements) =>
-        prevElements.map((ele, index) =>
-          index === elements.length - 1
-            ? {
-                ...ele,
-                path: [...ele.path, [offsetX, offsetY]],
-              }
-            : ele
-        )
-      );
-    }
+    if (isDrawing) {
+      const updatedElements = [...elements];
+      const currentElement = updatedElements[updatedElements.length - 1];
 
-    sendDrawing(elements);
+      if (tool === 'pencil' || tool === 'eraser') {
+        currentElement.path.push([offsetX, offsetY]);
+      } else {
+        currentElement.width = offsetX - currentElement.offsetX;
+        currentElement.height = offsetY - currentElement.offsetY;
+      }
+
+      setElements(updatedElements);
+      sendDrawing(updatedElements); // Отправка малюнка на сервер
+    }
   };
 
   const handleMouseUp = () => {
     setIsDrawing(false);
-    sendDrawing(elements);
   };
 
   return (
-    <div className="canvas-container" style={{ border: '1px solid black', height: '500px', width: '100%' }}>
-      <canvas
-        ref={canvasRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-      />
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="canvas"
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+    />
   );
 };
 

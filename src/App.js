@@ -3,6 +3,7 @@ import Canvas from './Canvas';
 import './App.css'; 
 import rough from 'roughjs/bundled/rough.esm';
 import io from 'socket.io-client';
+import { longPoll, sendCanvasData } from './longPoll';  
 
 const generator = rough.generator();
 
@@ -15,48 +16,66 @@ const App = () => {
   const [elements, setElements] = useState([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const socketRef = useRef(null);
+  const [connectionType, setConnectionType] = useState('WebSocket');  
 
   useEffect(() => {
     const canvas = canvasRef.current;
+
+    // Встановлення розмірів полотна з урахуванням масштабу
     canvas.height = window.innerHeight * 2;
     canvas.width = window.innerWidth * 2;
+
+    // Встановлення стилю полотна
     canvas.style.width = `${window.innerWidth}px`;
     canvas.style.height = `${window.innerHeight}px`;
 
     const context = canvas.getContext('2d');
-    context.scale(2, 2);
+    context.scale(2, 2); // Можливо, варто прибрати масштабування, якщо не потрібно
     context.lineCap = 'round';
     ctx.current = context;
 
-    socketRef.current = io('http://localhost:5000'); 
+    if (connectionType === 'WebSocket') {
+      socketRef.current = io('http://localhost:5000');
+      socketRef.current.on('connect', () => {
+        console.log('Connected to WebSocket server');
+      });
 
-    socketRef.current.on('connect', () => {
-      console.log('Connected to server');
-    });
+      socketRef.current.on('drawing', (receivedElements) => {
+        setElements(receivedElements);
+      });
 
-    socketRef.current.on('drawing', (receivedElements) => {
-      setElements(receivedElements);
-    });
-
-    return () => {
-      socketRef.current.disconnect(); 
-    };
-  }, []);
+      return () => {
+        socketRef.current.disconnect(); 
+      };
+    } else if (connectionType === 'LongPoll') {
+      longPoll(setElements); 
+      console.log('Connected to Long Poll server');
+    }
+  }, [connectionType]);
 
   const sendDrawing = (updatedElements) => {
-    socketRef.current.emit('drawing', updatedElements);
+    if (connectionType === 'WebSocket') {
+      socketRef.current.emit('drawing', updatedElements);
+    } else if (connectionType === 'LongPoll') {
+      sendCanvasData(updatedElements);  
+    }
   };
 
   const handleClearCanvas = () => {
     ctx.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     setElements([]);
-    sendDrawing([]);
+    sendDrawing([]);  
   };
 
   return (
     <div className="container">
       <div className="header">
         <h1>Drawing App</h1>
+        <label>Connection: </label>
+        <select value={connectionType} onChange={(e) => setConnectionType(e.target.value)}>
+          <option value="WebSocket">WebSocket</option>
+          <option value="LongPoll">Long Poll</option>
+        </select>
       </div>
       <div className="controls">
         <label>Color: </label>
@@ -68,7 +87,7 @@ const App = () => {
           <option value="line">Line</option>
           <option value="eraser">Eraser</option>
           <option value="ellipse">Ellipse</option>
-          <option value="circle">Circle</option> {/* Add Circle tool */}
+          <option value="circle">Circle</option>
         </select>
         <label>Thickness: </label>
         <input
@@ -89,7 +108,7 @@ const App = () => {
           elements={elements}
           tool={tool}
           thickness={thickness}
-          socket={socketRef.current} 
+          socket={socketRef.current}
           isDrawing={isDrawing}
           setIsDrawing={setIsDrawing}
           sendDrawing={sendDrawing}  

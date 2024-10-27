@@ -1,3 +1,4 @@
+
 body {
   font-family: Arial, sans-serif;
   background-color: #f4f4f4;
@@ -9,20 +10,21 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  height: 100vh;
+  justify-content: flex-start; /* Змінено на flex-start */
+  min-height: 100vh; /* Мінімальна висота */
 }
 
 .header {
   background-color: #007bff;
   color: #fff;
-  padding: 20px;
+  padding: 10px 0; 
   text-align: center;
   width: 100%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
 .controls {
-  margin: 20px 0;
+  margin: 10px 0; /* Зменшено відступи */
   display: flex;
   align-items: center;
 }
@@ -65,6 +67,8 @@ body {
 }
 
 .canvas-container {
+  width: 100%; /* Заповнює всю ширину */
+  height: calc(100vh - (80px + 40px)); /* Вирахування висоти */
   border: 2px solid #007bff;
   background-color: white;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -76,4 +80,3 @@ canvas {
   cursor: crosshair;
   z-index: 1;
 }
-
